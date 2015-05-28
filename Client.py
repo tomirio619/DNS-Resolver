@@ -16,7 +16,8 @@ def packsubstring(substr):
 def encode(address):
     #maak DNS query, genereer 16 bit ID (mag niet gebruikt zijn)
     ID = random.getrandbits(16)
-    out = struct.pack('!6H', ID, 0, 1, 0, 0, 0)
+    FlgsNCodes = 256  # RD = 1
+    out = struct.pack('!6H', ID, FlgsNCodes, 1, 0, 0, 0)
 
     splittedAddress = address.split(".")
     buf = bytearray(b'')
