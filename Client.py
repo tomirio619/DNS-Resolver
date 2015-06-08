@@ -1,8 +1,7 @@
-import utils
-
-__author__ = 'tomirio619 & jusser'
+__author__ = 'Tom Sandmann (s4330048) & Justin Mol (s4386094)'
 
 from threading import Thread
+import utils
 import socket
 import struct
 import select
@@ -25,21 +24,18 @@ def sendQuery(msg, address='localhost', port=53):
     if whatReady:
         response = sock.recv(512*8)
         header, Qs, ANs, NSs, ARs = utils.dissectDNS(response)
+        print "Server: localhost"
+        print "Adress: localhost#53"
+        print "Authoritative answer:" if utils.isAA(response) else "Non-authoritative answer"
         for AR in ARs:
             ARname = AR[0]
             IP = AR[5]
-            print 'ARname ' + IP
+            print "Name: " + ARname
+            print "Address: " + IP
 
 
 def main():
     print 'Starting client'
-
-    # Question bestaat uit query type (QTYPE), query class (QCLASS) en query domain name (QNAME)
-    # Zie rfc1035 4.1.2 voor question section format
-
-    # http://www.zytrax.com/books/dns/ch15/
-    # We houden alleen rekening met Resource Records van type A en CNAME van klasse IN
-    # We moeten werken met een byte-array
     DNSmsgs = [
     "www.mijn-daltons.nl"
     # "mail.fishcom.ru"

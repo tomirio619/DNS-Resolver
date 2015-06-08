@@ -1,6 +1,7 @@
-__author__ = 'tomirio619'
+__author__ = 'Tom Sandmann (s4330048) & Justin Mol (s4386094)'
 
 from threading import Thread, Lock
+import threading
 
 import socket
 import struct
@@ -45,22 +46,6 @@ def makeNonRecursive(query):
     return qheader + query[12:]
 
 
-# Onderstaande functie print de naam van een Resource Record (met extra punt op het einde)
-# def printName(data, result):
-#     nextlen = ord(data[0])
-#     data = data[1:]
-#     # print 'de waarde van nextlen is ', nextlen
-#     if nextlen > 0:
-#         for i in range(0, nextlen):
-#             # print 'de waarde van data[i] is ', ord(data[i])
-#             result += chr(ord(data[i]))
-#         result += "."
-#         # print 'het tussenliggende resultaat is:', result
-#         return printName(data[nextlen:], result)
-#     else:
-#         return result
-
-
 # Return codes for doOneStep:
 ANSWER = 0
 NOCHANGE = 1
@@ -69,7 +54,7 @@ CNAMEQUERY = 2
 
 # Cache is datastructue: ([IP], TTL, cname)
 def readCacheFrom(filename):
-
+    # TODO : This
     return
 
 
@@ -79,15 +64,20 @@ def writeCacheTo(cache, filename='cache'):
     for key in cache.keys():
         cachevalue = cache[key]
         IPs = cachevalue[0]
+        TTL = cachevalue[1]
+        CNAME = cachevalue[2]
 
         target.write(key + '\t')
 
         length = len(IPs)
         for i in range(0, length):
             if i == length-1:
-                target.write(IPs[i])
+                target.write(IPs[i] + '\t')
             else:
                 target.write(IPs[i] + ', ')
+        # TODO: Fix TTL as date
+        target.write(str(TTL) + '\t')
+        target.write(CNAME + '\t')
         target.write('\n')
 
 
@@ -185,8 +175,6 @@ def listType(RRs, type):
 
 
 def resolve(query, dnsIP='192.55.83.30'):   # Default IP is local host
-
-    # TODO: Before asking, check cache
     _, Qs, _, _, _ = utils.dissectDNS(query)
     name = Qs[0][0]
     if name in cache:
@@ -202,6 +190,7 @@ def resolve(query, dnsIP='192.55.83.30'):   # Default IP is local host
         print utils.isAA(rcvd)
         sock.close()
         oneStep = doOneStep(rcvd)
+
         if oneStep is not None:
             if len(oneStep) == 2:
                 if oneStep[1] == NOCHANGE:  # Continue our journey
@@ -221,11 +210,15 @@ def resolve(query, dnsIP='192.55.83.30'):   # Default IP is local host
 
 def solve(query, dnsIP='192.55.83.30'):
     answer = resolve(query, dnsIP)
-    if answer is not None:
-        log('Answer for', query, '--')
-        print answer
-        # log('Cachedump', cache, '-')
-        writeCacheTo(cache)
+    # TODO send answer back to client
+    with lock:
+        if answer is not None:
+            _, Qs, _, _, _ = utils.dissectDNS(query)
+            log('Answer for', Qs[0], '--')
+            print threading.currentThread()
+            # print answer
+            writeCacheTo(cache)
+            # log('Cachedump', cache, '-')
 
 
 def main():
@@ -242,18 +235,16 @@ def main():
     while True:
         # We pakken eerst de eerste 160 bits (20 bytes) UDP Header en DNS Header bevat
         whatReady = select.select([sock], [], [])
-        if whatReady != []:
+        if whatReady:
             pkt = sock.recv(20*80)
-            # utils.printInfo(pkt)
-            print utils.isAA(pkt)
             ipHeader, udpHeader, udpData = utils.dissectIP(pkt)
 
+            # TODO : check on portnumber
+            # TODO : Write function to get portnumber out of udpheader (in utils)
             if len(udpData) >= 12:
                 query = makeNonRecursive(udpData)
                 t = Thread(target = solve, args =(query, '131.174.117.20'))
                 t.start()
-                # Answer = resolve(udpData, '192.33.4.12')  # root server
-                # Answer = resolve(udpData, 131.174.117.20')
 
 
 if __name__ == "__main__":
