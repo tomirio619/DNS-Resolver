@@ -5,6 +5,7 @@ __author__ = 'tomirio619 & jusser'
 from threading import Thread
 import socket
 import struct
+import select
 
 
 def packsubstring(substr):
@@ -20,6 +21,15 @@ def sendQuery(msg, address='localhost', port=53):
     server_address = (address, port)
     sock.sendto(query, server_address)
 
+    whatReady = select.select([sock], [], [])
+    if whatReady:
+        response = sock.recv(512*8)
+        header, Qs, ANs, NSs, ARs = utils.dissectDNS(response)
+        for AR in ARs:
+            ARname = AR[0]
+            IP = AR[5]
+            print 'ARname ' + IP
+
 
 def main():
     print 'Starting client'
@@ -31,10 +41,7 @@ def main():
     # We houden alleen rekening met Resource Records van type A en CNAME van klasse IN
     # We moeten werken met een byte-array
     DNSmsgs = [
-    "www.mijn-daltons.nl",
-    "www.hotmail.com",
-    "www.pornhub.com",
-    "www.yahoo.com",
+    "www.mijn-daltons.nl"
     # "mail.fishcom.ru"
     ]
     for msg in DNSmsgs:

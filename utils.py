@@ -19,8 +19,11 @@ def encode(address, recursionDesired=True, ID=''):
     #maak DNS query, genereer 16 bit ID (mag niet gebruikt zijn)
     if ID == '':
         ID = random.getrandbits(16)
-    FlagsNCodes = recursionDesired if 1 << 8 else 0
-    out = struct.pack('!6H', ID, FlagsNCodes, 1, 0, 0, 0)
+    if recursionDesired:
+        FlgsNCodes = 256  # RD = 1
+    else:
+        FlgsNCodes = 0
+    out = struct.pack('!6H', ID, FlgsNCodes, 1, 0, 0, 0)
 
     splittedAddress = address.split(".")
     for str in splittedAddress:
@@ -37,7 +40,7 @@ def printInfo(pkt):
     print 'IP PACKET\n---------------------'
     print 'Length: ', length
     ipHeader = pkt[0:20]
-    src1, src2, src3, src4, dst1, dst2, dst3, dst4 = struct.unpack('!12x8B', ipHeader)
+    (src1,src2,src3,src4, dst1,dst2,dst3,dst4) = struct.unpack('!12x8B', ipHeader)
     print 'Source address: {}.{}.{}.{}'.format(src1,src2,src3,src4)
     print 'Dest address: {}.{}.{}.{}'.format(dst1,dst2,dst3,dst4)
     print '---------------------'
@@ -153,6 +156,14 @@ def readName(data, name='', original=''):
     else:
         data = data[1:]
         return name, data
+
+def isAA(query):
+    header = query[0:12]
+    FlgsNCodes = header[2:4]
+    Flgs = FlgsNCodes[0]
+    Flgs = struct.unpack('!B', Flgs)[0]
+    AAbit = (Flgs >> 2) & 1
+    return AAbit
 
 
 def readIP(RDATA):
